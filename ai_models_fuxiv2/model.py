@@ -110,6 +110,12 @@ class FuXiv2(Model):
         fields_sfc = fields_sfc.order_by('valid_datetime', param=self.param_sfc)
         fields_sfc_numpy = fields_sfc.to_numpy(dtype=np.float32)
         fields_sfc_numpy1, fields_sfc_numpy2 = np.split(fields_sfc_numpy, 2, axis=0)
+        # convert from ERA5 J m**-2 to W m**-2 for ssr, ssrd, fdir and ttr
+        fields_sfc_numpy1[12:17] = fields_sfc_numpy1[12:17] / 600
+        fields_sfc_numpy2[12:17] = fields_sfc_numpy2[12:17] / 600
+        # convert from ERA5 m to mm for tp
+        fields_sfc_numpy1[-1] = fields_sfc_numpy1[-1] * 1000 * 6
+        fields_sfc_numpy2[-1] = fields_sfc_numpy2[-1] * 1000 * 6
         # calculate wind speed from u and v components
         ws10m = np.hypot(fields_sfc_numpy1[4], fields_sfc_numpy1[5])
         ws100m = np.hypot(fields_sfc_numpy1[6], fields_sfc_numpy1[7])
@@ -193,6 +199,10 @@ class FuXiv2(Model):
 
                     # Convert back to kg/kg
                     prediction[:, 52:65] = prediction[:, 52:65] / 1000.0
+                    # Convert back to J m**-2
+                    prediction[:, 79:83] = prediction[:, 79:83] * 600
+                    # Convert back to m
+                    prediction[:, -1] = prediction[:, -1] / 1000
 
                     # Remove wind speed at 10m and 100m (indices 69 and 70) from the output, as they can be derived from u and v components
                     prediction = np.concatenate([prediction[:, :69], prediction[:, 71:]], axis=1)
